@@ -2,6 +2,7 @@
 target
 .idea
 .settings
+tmp
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
