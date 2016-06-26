@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:p="http://www.springframework.org/schema/p" xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:task="http://www.springframework.org/schema/task" xmlns="http://www.springframework.org/schema/beans"
+       default-lazy-init="true"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.2.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
+	   http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd">
+
+    <!-- 自动扫描的包 -->
+    <context:component-scan base-package="cn.csbit">
+        <!-- 去掉Controller层 -->
+        <context:exclude-filter type="annotation"
+                                expression="org.springframework.stereotype.Controller"/>
+        <context:exclude-filter type="annotation"
+                                expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+    </context:component-scan>
+
+    <!-- spring Task Scheduler -->
+    <task:annotation-driven/> <!-- 定时任务注解驱动 -->
+    <task:executor id="springExecutor" pool-size="4-10" queue-capacity="50" keep-alive="120"/><!-- 执行任务的线程池配置 -->
+    <task:scheduler id="springScheduler" pool-size="2"/><!-- 执行定时器的线程 -->
+
+    <!-- spring ehcache -->
+    <cache:annotation-driven/>
+    <bean id="ehcacheManager"
+          class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
+          p:config-location="classpath:ehcache.xml"/>
+    <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager"
+          p:cache-manager-ref="ehcacheManager"/>
+
+    <!-- production环境 -->
+    <beans profile="production" default-lazy-init="true">
+        <context:annotation-config/>
+        <context:property-placeholder location="classpath:application.properties"/>
+        <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource"
+              destroy-method="close">
+            <!-- Connection Info -->
+            <property name="driverClassName" value="${jdbc.driver}"/>
+            <property name="url" value="${jdbc.url}"/>
+            <property name="username" value="${jdbc.username}"/>
+            <property name="password" value="${jdbc.password}"/>
+            <property name="defaultCatalog" value="${jdbc.defaultCatalog}"/>
+            <property name="dbProperties">
+                <props>
+                    <prop key="socketFactory">org.newsclub.net.mysql.AFUNIXDatabaseSocketFactory
+                    </prop>
+                    <prop key="junixsocket.file">/tmp/mysql.sock</prop>
+                </props>
+            </property>
+
+            <property name="initialSize" value="${dbcp.initialSize}"/>
+            <property name="maxActive" value="${dbcp.maxActive}"/>
+            <property name="maxIdle" value="${dbcp.maxIdle}"/>
+            <property name="minIdle" value="${dbcp.minIdle}"/>
+
+            <!-- 等待链接被归还的最大时间(ms)，超过则抛出异常，设置为-1则无限等待 -->
+            <property name="maxWait" value="10000"/>
+            <!-- 回收泄漏的链接 -->
+            <property name="removeAbandoned" value="true"/>
+            <!-- 超过removeAbandonedTimeout(s)的链接未关闭，视为泄漏 -->
+            <property name="removeAbandonedTimeout" value="300"/>
+            <!-- 操作记录日志 -->
+            <property name="logAbandoned" value="true"/>
+
+            <property name="validationQuery" value="select 1"/>
+            <!-- 获取池中链接时通过执行validationQuery检查其有效性 -->
+            <property name="testOnBorrow" value="true"/>
+            <!-- 归还链接时通过执行validationQuery检查其有效性 -->
+            <property name="testOnReturn" value="true"/>
+            <!-- 指明链接被空闲链接回收器进行检验，如果检测失败则从池中删除 -->
+            <property name="testWhileIdle" value="true"/>
+            <!-- 每次空闲链接回收器线程运行期间检查的链接数 -->
+            <property name="numTestsPerEvictionRun" value="5"/>
+
+            <property name="defaultAutoCommit" value="true"/>
+            <!-- 空闲链接回收器线程运行期间休眠的时间(ms), 负数表示不运行空闲连接回收器 -->
+            <property name="timeBetweenEvictionRunsMillis" value="3600000"/>
+            <!-- 连接在池中保持空闲而不被空闲连接回收器回收的最小时间(ms) -->
+            <property name="minEvictableIdleTimeMillis" value="3600000"/>
+        </bean>
+
+        <bean id="sessionFactory"
+              class="org.springframework.orm.hibernate5.LocalSessionFactoryBean"
+              p:dataSource-ref="dataSource">
+            <!-- mapping的配在可以用spring提供的自动扫描包 -->
+            <property name="packagesToScan" value="cn.csbit"/>
+            <property name="hibernateProperties">
+                <props>
+                    <prop key="javax.persistence.validation.mode">none</prop>
+                    <prop key="hibernate.dialect">org.hibernate.dialect.MySQL5Dialect</prop>
+                    <prop key="hibernate.show_sql">false</prop>
+                    <prop key="hibernate.format_sql">false</prop>
+                    <prop key="hibernate.hbm2ddl.auto">update</prop>
+                </props>
+            </property>
+        </bean>
+
+        <!-- 配置JdbcTemplate -->
+        <bean id="jdbcTemplate" class="cn.csbit.common.JdbcTemplate">
+            <property name="dataSource" ref="dataSource"/>
+        </bean>
+
+        <!-- 配置声明式事务管理 -->
+        <bean id="transactionManager"
+              class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+            <property name="sessionFactory" ref="sessionFactory"/>
+        </bean>
+        <!-- 基于注解的事务管理 -->
+        <tx:annotation-driven transaction-manager="transactionManager"/>
+
+        <!-- 配置MailSender -->
+        <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+            <property name="host" value="192.168.1.1"/>
+            <property name="port" value="25"/>
+            <property name="username" value="demo@csbit.cn"/>
+            <property name="password" value="demo"/>
+            <property name="javaMailProperties">
+                <props>
+                    <prop key="mail.smtp.auth">true</prop>
+                    <prop key="mail.smtp.timeout">25000</prop>
+                </props>
+            </property>
+        </bean>
+
+        <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+            <property name="maxUploadSize" value="10485760"/>
+        </bean>
+    </beans>
+</beans>

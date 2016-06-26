@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../spring-init-master/spring-init/spring-init.iml" filepath="$PROJECT_DIR$/../spring-init-master/spring-init/spring-init.iml" />
+      <module fileurl="file://$PROJECT_DIR$/webencrpyt.iml" filepath="$PROJECT_DIR$/webencrpyt.iml" />
+    </modules>
+  </component>
+</project>
