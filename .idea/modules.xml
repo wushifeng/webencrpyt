@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../spring-init-master/spring-init/spring-init.iml" filepath="$PROJECT_DIR$/../spring-init-master/spring-init/spring-init.iml" />
-      <module fileurl="file://$PROJECT_DIR$/webencrpyt.iml" filepath="$PROJECT_DIR$/webencrpyt.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/webencrpyt.iml" filepath="$PROJECT_DIR$/.idea/webencrpyt.iml" />
     </modules>
   </component>
 </project>
